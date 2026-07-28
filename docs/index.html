@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Gaslight Parlour</title>
+<style>
+  :root {
+    --wood-dark: #2b1a10;
+    --wood-mid: #4a2f1c;
+    --wood-light: #6b4527;
+    --brass: #c8a165;
+    --brass-bright: #e6c789;
+    --parchment: #ece0c8;
+    --shadow: rgba(0,0,0,0.55);
+    --crimson: #8e1f2b;
+    --crimson-light: #b13744;
+    --ebony: #1a1a1a;
+    --felt: #0e4d33;
+    --felt-light: #146043;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: radial-gradient(ellipse at center, #241407 0%, #0a0603 100%);
+    font-family: 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    color: var(--parchment);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 20px 60px;
+    min-height: 100%;
+  }
+
+  .glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 1000px 500px at 50% 0%, rgba(200,161,101,0.10), transparent 65%),
+      radial-gradient(ellipse 700px 500px at 15% 90%, rgba(178,55,68,0.06), transparent 70%),
+      radial-gradient(ellipse 700px 500px at 85% 90%, rgba(20,96,64,0.08), transparent 70%);
+    z-index: 0;
+  }
+
+  /* flickering gaslight flecks */
+  .flicker {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(circle 300px at 50% 10%, rgba(230,199,137,0.05), transparent 60%);
+    animation: flicker 5s ease-in-out infinite;
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    45% { opacity: 0.85; }
+    50% { opacity: 1; }
+    52% { opacity: 0.7; }
+    55% { opacity: 1; }
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .crest {
+    font-size: 1.6rem;
+    color: var(--brass);
+    opacity: 0.8;
+    margin-bottom: 6px;
+    letter-spacing: 0.3em;
+  }
+
+  h1 {
+    font-family: 'Didot', 'Bodoni MT', Georgia, serif;
+    font-size: 3.2rem;
+    letter-spacing: 0.1em;
+    margin: 0;
+    color: var(--brass-bright);
+    text-shadow: 0 2px 16px rgba(200,161,101,0.4), 0 1px 0 rgba(0,0,0,0.6);
+    font-weight: 400;
+  }
+
+  .subtitle {
+    margin: 10px 0 0;
+    font-size: 0.9rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #a89476;
+    opacity: 0.85;
+  }
+
+  .divider {
+    width: 260px;
+    height: 1px;
+    margin: 26px auto 10px;
+    background: linear-gradient(90deg, transparent, var(--brass), transparent);
+    position: relative;
+    z-index: 1;
+  }
+
+  .intro {
+    max-width: 560px;
+    text-align: center;
+    font-size: 0.98rem;
+    line-height: 1.7;
+    color: #c9b896;
+    font-style: italic;
+    margin: 14px 0 44px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .rooms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
+    gap: 30px;
+    justify-content: center;
+    max-width: 1000px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .room-card {
+    position: relative;
+    background: linear-gradient(160deg, var(--wood-light), var(--wood-dark) 65%, #150c05);
+    border-radius: 12px;
+    padding: 4px;
+    box-shadow: 0 20px 50px var(--shadow), inset 0 0 0 1px rgba(200,161,101,0.2);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .room-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 28px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(230,199,137,0.4), 0 0 30px rgba(200,161,101,0.15);
+  }
+
+  .room-inner {
+    border: 1px solid rgba(200,161,101,0.28);
+    border-radius: 9px;
+    padding: 26px 24px 24px;
+    background: radial-gradient(ellipse at 50% -10%, rgba(230,199,137,0.06), transparent 60%);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .room-icon {
+    width: 100%;
+    height: 96px;
+    border-radius: 6px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(200,161,101,0.25), 0 4px 14px rgba(0,0,0,0.4);
+  }
+
+  /* Draughts icon: mini checkerboard */
+  .icon-draughts {
+    background: #1a1a1a;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    align-items: stretch;
+    justify-items: stretch;
+    padding: 8px;
+    gap: 2px;
+  }
+  .icon-draughts .sq {
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-draughts .sq.d { background: #4a3121; }
+  .icon-draughts .sq.l { background: #d9c3a0; }
+  .icon-draughts .piece {
+    border-radius: 50%;
+    width: 65%;
+    height: 65%;
+  }
+  .icon-draughts .piece.c { background: radial-gradient(circle at 32% 28%, var(--crimson-light), var(--crimson) 60%, #5c1219); box-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+  .icon-draughts .piece.e { background: radial-gradient(circle at 32% 28%, #4a4a4a, var(--ebony) 60%, #050505); box-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+
+  /* Ink & Ivory icon: mini chessboard */
+  .icon-chess {
+    background: #100b08;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    align-items: stretch;
+    justify-items: stretch;
+    padding: 8px;
+    gap: 2px;
+  }
+  .icon-chess .sq {
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+  .icon-chess .sq.d { background: #17130f; }
+  .icon-chess .sq.l { background: #ece4d3; }
+  .icon-chess .glyph.ink { color: var(--brass-bright); text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+  .icon-chess .glyph.ivory { color: #2b2018; text-shadow: 0 1px 1px rgba(255,255,255,0.25); }
+
+  /* Green Baize icon: mini pool table */
+  .icon-baize {
+    background: radial-gradient(ellipse at 50% 40%, var(--felt-light), var(--felt));
+    position: relative;
+  }
+  .icon-baize::before {
+    content: '';
+    position: absolute; inset: 6px;
+    border: 2px solid #0a3322;
+    border-radius: 3px;
+  }
+  .icon-baize .ball {
+    position: absolute;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.35);
+  }
+
+  .room-name {
+    font-family: 'Didot', 'Bodoni MT', Georgia, serif;
+    font-size: 1.4rem;
+    color: var(--brass-bright);
+    margin: 0 0 8px;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+  }
+
+  .room-desc {
+    font-size: 0.86rem;
+    color: #c9b896;
+    line-height: 1.55;
+    margin: 0 0 20px;
+    flex-grow: 1;
+  }
+
+  .room-enter {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brass);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .room-enter .arrow { transition: transform 0.2s ease; }
+  .room-card:hover .room-enter .arrow { transform: translateX(4px); }
+  .room-card:hover .room-enter { color: var(--brass-bright); }
+
+  .room-card.locked {
+    cursor: default;
+  }
+  .room-card.locked:hover {
+    transform: none;
+    box-shadow: 0 20px 50px var(--shadow), inset 0 0 0 1px rgba(200,161,101,0.2);
+  }
+  .room-card.locked .room-inner {
+    opacity: 0.55;
+  }
+  .icon-locked {
+    background: #1a1410;
+    font-size: 2rem;
+    color: var(--brass);
+    opacity: 0.5;
+  }
+
+  footer {
+    margin-top: 56px;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #6a5a44;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 2.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+<div class="flicker"></div>
+
+<header>
+  <div class="crest">&#10022;</div>
+  <h1>The Gaslight Parlour</h1>
+  <p class="subtitle">An Evening's Collection of Games</p>
+</header>
+<div class="divider"></div>
+<p class="intro">Down the hall, past the coat room, three doors stand ajar and one still locked.
+Choose your room — the felt is brushed, the boards are set, and the house always has time for one more game.</p>
+
+<div class="rooms">
+  <a class="room-card" href="The%20Draughts%20Room.html">
+    <div class="room-inner">
+      <div class="room-icon icon-draughts" id="draughtsIcon"></div>
+      <h2 class="room-name">The Draughts Room</h2>
+      <p class="room-desc">American checkers, played properly. Mandatory captures, a sharp alpha-beta opponent, and a board that's seen a few late nights.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
+  <a class="room-card" href="The%20Green%20Baize.html">
+    <div class="room-inner">
+      <div class="room-icon icon-baize" id="baizeIcon"></div>
+      <h2 class="room-name">The Green Baize</h2>
+      <p class="room-desc">Eight-ball, bar rules. Real physics off the cushions, an opponent who reads angles, and a break that finally hits like it should.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
+  <a class="room-card" href="Ink%26Ivory.html">
+    <div class="room-inner">
+      <div class="room-icon icon-chess" id="chessIcon"></div>
+      <h2 class="room-name">Ink &amp; Ivory</h2>
+      <p class="room-desc">Chess, unhurried. An alpha-beta engine with adjustable difficulty, and a board carved for long, quiet games.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
+  <div class="room-card locked">
+    <div class="room-inner">
+      <div class="room-icon icon-locked">&#128274;</div>
+      <h2 class="room-name">A Fourth Room</h2>
+      <p class="room-desc">Still dark. Another table will be laid out here in time &mdash; the house is only just getting started.</p>
+      <div class="room-enter">Coming Soon</div>
+    </div>
+  </div>
+</div>
+
+<footer>Est. this evening &middot; Please, wipe your feet</footer>
+
+<script>
+  // build the mini checkerboard icon
+  (function() {
+    const board = document.getElementById('draughtsIcon');
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 6; c++) {
+        const sq = document.createElement('div');
+        const dark = (r + c) % 2 === 1;
+        sq.className = 'sq ' + (dark ? 'd' : 'l');
+        if (dark) {
+          if (r === 0) {
+            const p = document.createElement('div');
+            p.className = 'piece e';
+            sq.appendChild(p);
+          } else if (r === 2) {
+            const p = document.createElement('div');
+            p.className = 'piece c';
+            sq.appendChild(p);
+          }
+        }
+        board.appendChild(sq);
+      }
+    }
+  })();
+
+  // build the mini chessboard icon
+  (function() {
+    const board = document.getElementById('chessIcon');
+    const glyphs = { '0,1': ['♞', 'ink'], '1,3': ['♔', 'ivory'], '2,4': ['♝', 'ink'] };
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 6; c++) {
+        const sq = document.createElement('div');
+        const dark = (r + c) % 2 === 1;
+        sq.className = 'sq ' + (dark ? 'd' : 'l');
+        const key = r + ',' + c;
+        if (glyphs[key]) {
+          const [ch, kind] = glyphs[key];
+          const g = document.createElement('span');
+          g.className = 'glyph ' + kind;
+          g.textContent = ch;
+          sq.appendChild(g);
+        }
+        board.appendChild(sq);
+      }
+    }
+  })();
+
+  // scatter a few balls on the mini pool table icon
+  (function() {
+    const table = document.getElementById('baizeIcon');
+    const balls = [
+      { x: 18, y: 30, color: 'radial-gradient(circle at 32% 28%, #fff, #d8d0c0)' },
+      { x: 46, y: 22, color: 'radial-gradient(circle at 32% 28%, #f0c94a, #d4b106)' },
+      { x: 78, y: 45, color: 'radial-gradient(circle at 32% 28%, #4a8ce0, #1450a3)' },
+      { x: 110, y: 30, color: 'radial-gradient(circle at 32% 28%, #d9645f, #b1272c)' },
+      { x: 60, y: 62, color: 'radial-gradient(circle at 32% 28%, #3a3a3a, #111)' },
+      { x: 140, y: 55, color: 'radial-gradient(circle at 32% 28%, #a55ad9, #6a3aa0)' }
+    ];
+    balls.forEach(b => {
+      const el = document.createElement('div');
+      el.className = 'ball';
+      el.style.left = b.x + 'px';
+      el.style.top = b.y + 'px';
+      el.style.background = b.color;
+      table.appendChild(el);
+    });
+  })();
+</script>
+
+</body>
+</html>
