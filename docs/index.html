@@ -240,6 +240,57 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.35);
   }
 
+  /* shared mini playing-card used by Patience/Sharper/River icons */
+  .mini-pcard {
+    position: absolute;
+    width: 22px; height: 30px;
+    border-radius: 3px;
+    background: linear-gradient(160deg, #f5ecd8, var(--parchment) 55%, #d9c9a3);
+    border: 1px solid rgba(43,26,16,0.4);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    font-size: 0.6rem;
+    font-weight: bold;
+    line-height: 1;
+    padding: 2px 0 0 3px;
+  }
+  .mini-pcard.red { color: var(--crimson); }
+  .mini-pcard.black { color: var(--ebony); }
+  .mini-pcard.back {
+    background: repeating-linear-gradient(45deg, var(--crimson-dark) 0 4px, #4a1016 4px 8px);
+    border: 1px solid rgba(200,161,101,0.5);
+  }
+
+  /* Patience Room icon: cascading solitaire tableau */
+  .icon-patience {
+    background: radial-gradient(ellipse at 50% 40%, var(--felt-light), var(--felt));
+    position: relative;
+  }
+
+  /* Sharper's Table icon: fanned hand + chip stack */
+  .icon-sharper {
+    background: radial-gradient(ellipse at 50% 40%, var(--felt-light), var(--felt));
+    position: relative;
+  }
+  .icon-sharper .chip {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.25);
+  }
+
+  /* River Room icon: community row + pot */
+  .icon-river {
+    background: radial-gradient(ellipse at 50% 40%, var(--felt-light), var(--felt));
+    position: relative;
+  }
+  .icon-river .pot-dot {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, var(--brass-bright), var(--brass));
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+
   .room-name {
     font-family: 'Didot', 'Bodoni MT', Georgia, serif;
     font-size: 1.4rem;
@@ -314,7 +365,7 @@
   <p class="subtitle">An Evening's Collection of Games</p>
 </header>
 <div class="divider"></div>
-<p class="intro">Down the hall, past the coat room, three doors stand ajar and one still locked.
+<p class="intro">Down the hall, past the coat room, six doors stand ajar and one still locked.
 Choose your room — the felt is brushed, the boards are set, and the house always has time for one more game.</p>
 
 <div class="rooms">
@@ -345,10 +396,37 @@ Choose your room — the felt is brushed, the boards are set, and the house alwa
     </div>
   </a>
 
+  <a class="room-card" href="The%20Patience%20Room.html">
+    <div class="room-inner">
+      <div class="room-icon icon-patience" id="patienceIcon"></div>
+      <h2 class="room-name">The Patience Room</h2>
+      <p class="room-desc">Klondike, played alone by gaslight. A quiet table, a fresh deck, and no one to blame but yourself for a bad shuffle.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
+  <a class="room-card" href="The%20Sharper's%20Table.html">
+    <div class="room-inner">
+      <div class="room-icon icon-sharper" id="sharperIcon"></div>
+      <h2 class="room-name">The Sharper's Table</h2>
+      <p class="room-desc">Five-card draw, house ante five. Three regulars with chips to spare and tells worth learning.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
+  <a class="room-card" href="The%20River%20Room.html">
+    <div class="room-inner">
+      <div class="room-icon icon-river" id="riverIcon"></div>
+      <h2 class="room-name">The River Room</h2>
+      <p class="room-desc">Texas hold'em, blinds ten and twenty. Four streets, four chairs, and a board that turns fortunes on the last card.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
   <div class="room-card locked">
     <div class="room-inner">
       <div class="room-icon icon-locked">&#128274;</div>
-      <h2 class="room-name">A Fourth Room</h2>
+      <h2 class="room-name">One More Room</h2>
       <p class="room-desc">Still dark. Another table will be laid out here in time &mdash; the house is only just getting started.</p>
       <div class="room-enter">Coming Soon</div>
     </div>
@@ -422,6 +500,68 @@ Choose your room — the felt is brushed, the boards are set, and the house alwa
       el.style.top = b.y + 'px';
       el.style.background = b.color;
       table.appendChild(el);
+    });
+  })();
+
+  function makeMiniCard(opts) {
+    const el = document.createElement('div');
+    el.className = 'mini-pcard' + (opts.back ? ' back' : ' ' + opts.color);
+    el.style.left = opts.x + 'px';
+    el.style.top = opts.y + 'px';
+    if (opts.rotate) el.style.transform = 'rotate(' + opts.rotate + 'deg)';
+    if (!opts.back) el.textContent = opts.label;
+    return el;
+  }
+
+  // Patience Room icon: cascading tableau + two foundation cards
+  (function() {
+    const table = document.getElementById('patienceIcon');
+    table.appendChild(makeMiniCard({ x: 14, y: 8, back: true }));
+    table.appendChild(makeMiniCard({ x: 14, y: 18, back: true }));
+    table.appendChild(makeMiniCard({ x: 14, y: 28, back: true }));
+    table.appendChild(makeMiniCard({ x: 14, y: 38, color: 'red', label: '7♥' }));
+    table.appendChild(makeMiniCard({ x: 108, y: 14, color: 'black', label: 'A♠' }));
+    table.appendChild(makeMiniCard({ x: 136, y: 20, color: 'red', label: 'A♦' }));
+  })();
+
+  // Sharper's Table icon: fanned hand + chip stack
+  (function() {
+    const table = document.getElementById('sharperIcon');
+    table.appendChild(makeMiniCard({ x: 20, y: 30, color: 'black', label: 'K♠', rotate: -16 }));
+    table.appendChild(makeMiniCard({ x: 36, y: 24, color: 'red', label: 'K♥', rotate: -5 }));
+    table.appendChild(makeMiniCard({ x: 52, y: 22, color: 'black', label: 'K♣', rotate: 6 }));
+    table.appendChild(makeMiniCard({ x: 68, y: 26, color: 'red', label: 'Q♦', rotate: 17 }));
+    const chipColors = ['#b13744', '#e6c789', '#146043'];
+    chipColors.forEach((c, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.style.left = (128 + i * 3) + 'px';
+      chip.style.top = (56 - i * 5) + 'px';
+      chip.style.background = 'radial-gradient(circle at 32% 28%, ' + c + ', rgba(0,0,0,0.4))';
+      table.appendChild(chip);
+    });
+  })();
+
+  // River Room icon: community row + pot
+  (function() {
+    const table = document.getElementById('riverIcon');
+    const community = [
+      { color: 'black', label: 'A♠' },
+      { color: 'red', label: 'K♥' },
+      { color: 'black', label: 'Q♣' },
+      { back: true },
+      { back: true }
+    ];
+    community.forEach((c, i) => {
+      table.appendChild(makeMiniCard({ x: 10 + i * 26, y: 12, color: c.color, label: c.label, back: c.back }));
+    });
+    const potPositions = [{ x: 118, y: 62 }, { x: 128, y: 66 }, { x: 138, y: 62 }];
+    potPositions.forEach(p => {
+      const dot = document.createElement('div');
+      dot.className = 'pot-dot';
+      dot.style.left = p.x + 'px';
+      dot.style.top = p.y + 'px';
+      table.appendChild(dot);
     });
   })();
 </script>
