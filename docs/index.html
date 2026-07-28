@@ -349,6 +349,25 @@
     text-align: center;
   }
 
+  .tip-jar {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brass);
+    text-decoration: none;
+    border: 1px solid rgba(200,161,101,0.3);
+    border-radius: 20px;
+    padding: 7px 18px;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+  .tip-jar:hover {
+    color: var(--brass-bright);
+    border-color: rgba(230,199,137,0.6);
+    background: rgba(230,199,137,0.08);
+  }
+
   @media (max-width: 420px) {
     h1 { font-size: 2.2rem; }
   }
@@ -433,7 +452,11 @@ Choose your room — the felt is brushed, the boards are set, and the house alwa
   </div>
 </div>
 
-<footer>Est. this evening &middot; Please, wipe your feet</footer>
+<footer>
+  Est. this evening &middot; Please, wipe your feet
+  <br>
+  <a class="tip-jar" href="https://www.buymeacoffee.com/dryleaftrace" target="_blank" rel="noopener">&#9749; Buy the house a round</a>
+</footer>
 
 <script>
   // build the mini checkerboard icon
