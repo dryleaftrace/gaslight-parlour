@@ -73,3 +73,7 @@ Or visit the live version: **[dryleaftrace.github.io/gaslight-parlour](https://d
 
 - [Ink & Ivory](https://github.com/dryleaftrace/Ink-and-Ivory) — chess, also playable standalone or live
 - [Cybersecurity Portfolio](https://github.com/dryleaftrace) — incident reports, network analysis, security assessments
+
+---
+
+If you enjoyed a night at the parlour: https://www.buymeacoffee.com/dryleaftrace
