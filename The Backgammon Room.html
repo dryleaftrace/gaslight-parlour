@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Backgammon Room</title>
+<style>
+  :root {
+    --wood-dark: #3b2417;
+    --wood-mid: #5a3825;
+    --wood-light: #7a4f34;
+    --board-dark: #4a3121;
+    --board-light: #d9c3a0;
+    --brass: #c8a165;
+    --brass-bright: #e6c789;
+    --crimson: #8e1f2b;
+    --crimson-dark: #5c1219;
+    --crimson-light: #b13744;
+    --ebony: #1a1a1a;
+    --ebony-light: #3a3a3a;
+    --parchment: #ece0c8;
+    --felt: #14231b;
+    --shadow: rgba(0,0,0,0.55);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: radial-gradient(ellipse at center, #2a1a10 0%, #100a06 100%);
+    font-family: 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    color: var(--parchment);
+    overflow-x: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 60px;
+    min-height: 100%;
+  }
+
+  .room-glow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse 900px 600px at 50% 30%, rgba(200,161,101,0.08), transparent 70%);
+    z-index: 0;
+  }
+
+  header { text-align: center; margin-bottom: 6px; position: relative; z-index: 1; }
+
+  h1 {
+    font-family: 'Didot', 'Bodoni MT', Georgia, serif;
+    font-size: 2.6rem;
+    letter-spacing: 0.12em;
+    margin: 0;
+    color: var(--brass-bright);
+    text-shadow: 0 2px 12px rgba(200,161,101,0.35), 0 1px 0 rgba(0,0,0,0.6);
+    font-weight: 400;
+  }
+  h1 .accent { color: var(--crimson-light); }
+
+  .subtitle {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #a89476;
+    opacity: 0.85;
+  }
+
+  .divider {
+    width: 220px;
+    height: 1px;
+    margin: 18px auto 22px;
+    background: linear-gradient(90deg, transparent, var(--brass), transparent);
+    position: relative;
+    z-index: 1;
+  }
+
+  .layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .board-frame {
+    padding: 18px;
+    background: linear-gradient(160deg, var(--wood-light), var(--wood-dark) 60%, #241408);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px var(--shadow), inset 0 0 0 2px rgba(200,161,101,0.25), inset 0 0 30px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .board-frame::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(200,161,101,0.35);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(34px, 46px)) 26px repeat(6, minmax(34px, 46px)) 40px;
+    grid-template-rows: repeat(2, minmax(150px, 190px));
+    gap: 3px;
+    background: linear-gradient(160deg, #2e1c11, #1c1109);
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: inset 0 0 0 3px #241408, inset 0 4px 18px rgba(0,0,0,0.6);
+  }
+
+  .point {
+    position: relative;
+    display: flex;
+    padding: 4px 2px;
+    background: var(--board-dark);
+  }
+  .point.alt { background: var(--board-light); }
+  .point.row1 {
+    align-items: flex-start;
+    flex-direction: column;
+    clip-path: polygon(0 0, 100% 0, 50% 88%);
+  }
+  .point.row2 {
+    align-items: flex-end;
+    flex-direction: column-reverse;
+    clip-path: polygon(0 100%, 100% 100%, 50% 12%);
+  }
+  .point.home-w, .point.home-b { filter: brightness(1.08); }
+
+  .point.own-src::after {
+    content: '';
+    position: absolute;
+    top: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--brass-bright);
+    box-shadow: 0 0 8px rgba(230,199,137,0.8);
+    animation: pulse 1.6s ease-in-out infinite;
+    z-index: 3;
+  }
+  .point.row2.own-src::after { top: auto; bottom: 4px; }
+  @keyframes pulse { 0%, 100% { transform: translateX(-50%) scale(0.85); opacity: 0.7; } 50% { transform: translateX(-50%) scale(1.15); opacity: 1; } }
+
+  .point.dest { box-shadow: inset 0 0 0 2px rgba(230,199,137,0.7); cursor: pointer; }
+  .point.dest.hit { box-shadow: inset 0 0 0 2px rgba(178,55,68,0.85); }
+  .point.selected-src { box-shadow: inset 0 0 0 3px var(--brass-bright); }
+
+  .checker {
+    width: 24px;
+    height: 24px;
+    min-height: 24px;
+    border-radius: 50%;
+    margin: 1px 0;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .checker.crimson {
+    background: radial-gradient(circle at 32% 28%, var(--crimson-light), var(--crimson) 55%, var(--crimson-dark) 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 2px 3px rgba(255,255,255,0.25), inset 0 -3px 6px rgba(0,0,0,0.4);
+  }
+  .checker.ebony {
+    background: radial-gradient(circle at 32% 28%, #4a4a4a, var(--ebony) 55%, #050505 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.7), inset 0 2px 3px rgba(255,255,255,0.12), inset 0 -3px 6px rgba(0,0,0,0.6);
+  }
+  .checker .n {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    color: var(--brass-bright);
+    font-weight: bold;
+  }
+
+  .bar-cell, .off-cell {
+    position: relative;
+    border-radius: 6px;
+    background: radial-gradient(ellipse at 35% 30%, #3a2718, var(--felt) 70%, #0c1410 100%);
+    box-shadow: inset 0 4px 10px rgba(0,0,0,0.7);
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px;
+  }
+  .bar-cell.own-src, .off-cell.dest { box-shadow: inset 0 0 0 2px rgba(230,199,137,0.7), inset 0 4px 10px rgba(0,0,0,0.7); cursor: pointer; }
+  .bar-cell .checker, .off-cell .checker { width: 16px; height: 16px; min-height: 16px; }
+  .off-cell .count-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 3px;
+    font-size: 0.6rem;
+    color: var(--brass-bright);
+  }
+
+  .dice-tray { display: flex; gap: 8px; margin-top: 10px; min-height: 34px; }
+  .die {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: linear-gradient(160deg, var(--brass-bright), var(--brass) 60%, #9c7c48);
+    color: #241408;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  }
+
+  /* --- Side panel (shared with other rooms) --- */
+  .panel { width: 300px; display: flex; flex-direction: column; gap: 18px; }
+
+  .card {
+    background: linear-gradient(160deg, rgba(58,36,23,0.85), rgba(20,12,7,0.9));
+    border: 1px solid rgba(200,161,101,0.25);
+    border-radius: 8px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brass);
+    font-weight: 400;
+    border-bottom: 1px solid rgba(200,161,101,0.2);
+    padding-bottom: 8px;
+  }
+
+  .turn-display { display: flex; align-items: center; gap: 12px; font-size: 1.05rem; }
+  .turn-dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+  .turn-dot.you { background: radial-gradient(circle at 32% 28%, var(--crimson-light), var(--crimson-dark)); box-shadow: 0 0 8px rgba(178,55,68,0.6); }
+  .turn-dot.opp { background: radial-gradient(circle at 32% 28%, #4a4a4a, #000); box-shadow: 0 0 8px rgba(0,0,0,0.6); }
+
+  .status-line { margin-top: 8px; font-size: 0.85rem; color: #c9b896; min-height: 1.2em; font-style: italic; }
+
+  .tally { display: flex; justify-content: space-between; font-size: 0.95rem; margin-top: 10px; }
+  .tally span.n { color: var(--brass-bright); font-weight: bold; }
+
+  select, button { font-family: inherit; font-size: 0.9rem; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: #a89476; }
+
+  select {
+    background: #241408;
+    color: var(--parchment);
+    border: 1px solid rgba(200,161,101,0.35);
+    border-radius: 4px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+
+  .btn {
+    background: linear-gradient(160deg, var(--brass-bright), var(--brass) 60%, #9c7c48);
+    color: #241408;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.5); }
+  .btn:active { transform: translateY(0); }
+  .btn.secondary { background: linear-gradient(160deg, #4a3020, #241408); color: var(--parchment); border: 1px solid rgba(200,161,101,0.3); }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+  .btn-row .btn { flex: 1; }
+
+  .thinking { display: inline-flex; align-items: center; gap: 6px; color: var(--brass-bright); font-size: 0.8rem; font-style: italic; }
+  .thinking .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brass-bright); animation: blink 1.2s infinite ease-in-out; }
+  .thinking .dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+  .log { max-height: 140px; overflow-y: auto; font-size: 0.8rem; color: #b8a888; line-height: 1.6; padding-right: 4px; }
+  .log::-webkit-scrollbar { width: 5px; }
+  .log::-webkit-scrollbar-thumb { background: rgba(200,161,101,0.3); border-radius: 3px; }
+  .log div { border-bottom: 1px dotted rgba(200,161,101,0.12); padding: 2px 0; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(10,6,3,0.82); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .overlay.show { display: flex; }
+  .overlay-card {
+    background: linear-gradient(160deg, var(--wood-light), var(--wood-dark) 70%);
+    border: 1px solid var(--brass);
+    border-radius: 10px;
+    padding: 40px 50px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+  }
+  .overlay-card h2 { color: var(--brass-bright); font-size: 1.8rem; margin: 0 0 8px; letter-spacing: 0.05em; font-weight: 400; }
+  .overlay-card p { color: #c9b896; margin: 0 0 22px; font-style: italic; }
+
+  footer { margin-top: 26px; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: #6a5a44; position: relative; z-index: 1; }
+
+  @media (max-width: 820px) {
+    .layout { flex-direction: column; align-items: center; }
+    .panel { width: 100%; max-width: 420px; }
+    #board { grid-template-columns: repeat(6, minmax(24px, 32px)) 18px repeat(6, minmax(24px, 32px)) 28px; grid-template-rows: repeat(2, minmax(110px, 140px)); }
+    .checker { width: 18px; height: 18px; min-height: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="room-glow"></div>
+
+<header>
+  <h1>The <span class="accent">Backgammon</span> Room</h1>
+  <p class="subtitle">Fortune Favours the Counted Point</p>
+</header>
+<div class="divider"></div>
+
+<div class="layout">
+  <div class="board-frame">
+    <div id="board"></div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h2>The Table</h2>
+      <div class="turn-display">
+        <div class="turn-dot you" id="turnDot"></div>
+        <span id="turnText">Your move</span>
+      </div>
+      <div class="status-line" id="statusLine">Rolling the dice...</div>
+      <div class="dice-tray" id="diceTray"></div>
+      <div class="tally">
+        <div>Your checkers off: <span class="n" id="yourOff">0</span></div>
+        <div>Opponent's off: <span class="n" id="oppOff">0</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>House Rules</h2>
+      <div class="field">
+        <label for="difficulty">Opponent Skill</label>
+        <select id="difficulty">
+          <option value="40">Novice</option>
+          <option value="15" selected>Club Player</option>
+          <option value="5">Sharp</option>
+          <option value="0">Master</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="side">You Play As</label>
+        <select id="side">
+          <option value="W" selected>Crimson (moves first)</option>
+          <option value="B">Ebony</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="newGameBtn">New Game</button>
+        <button class="btn secondary" id="undoBtn">Undo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>The Ledger</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<footer>Est. this evening &middot; Standard Rules, No Doubling Cube</footer>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h2 id="overlayTitle">Game Over</h2>
+    <p id="overlayText">The house has won the room.</p>
+    <button class="btn" id="overlayBtn">Play Again</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // board[0..23] = points 1..24. Positive = Crimson (W), Negative = Ebony (B).
+  let board = [];
+  let bar = { W: 0, B: 0 };
+  let off = { W: 0, B: 0 };
+  let dice = [];
+  let currentPlayer = 'W';
+  let humanSide = 'W';
+  let aiSide = 'B';
+  let selected = null; // idx (0-23) or 'bar'
+  let legalDestsForSelected = []; // [{die, to: idx|'off', hits}]
+  let history = [];
+  let gameOver = false;
+  let aiThinking = false;
+  let aiNoise = 15;
+
+  const boardEl = document.getElementById('board');
+  const statusLine = document.getElementById('statusLine');
+  const turnText = document.getElementById('turnText');
+  const turnDot = document.getElementById('turnDot');
+  const diceTray = document.getElementById('diceTray');
+  const logEl = document.getElementById('log');
+  const overlay = document.getElementById('overlay');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const overlayText = document.getElementById('overlayText');
+
+  function sign(side) { return side === 'W' ? 1 : -1; }
+  function otherSide(side) { return side === 'W' ? 'B' : 'W'; }
+  function ownerOf(n) { if (n > 0) return 'W'; if (n < 0) return 'B'; return null; }
+  function labelFor(side) { return side === humanSide ? 'You' : 'The opponent'; }
+
+  function initBoard() {
+    const b = new Array(24).fill(0);
+    b[23] = 2; b[12] = 5; b[7] = 3; b[5] = 5;
+    b[0] = -2; b[11] = -5; b[16] = -3; b[18] = -5;
+    return b;
+  }
+
+  function pipDistance(side, idx) { return side === 'W' ? idx + 1 : 24 - idx; }
+  function homeRange(side) { return side === 'W' ? [0, 5] : [18, 23]; }
+
+  function allCheckersInHome(state, side) {
+    if (state.bar[side] > 0) return false;
+    const [lo, hi] = homeRange(side);
+    for (let i = 0; i < 24; i++) {
+      if (ownerOf(state.board[i]) === side && (i < lo || i > hi)) return false;
+    }
+    return true;
+  }
+
+  function destinationForDie(side, from, die) {
+    const fromVal = from === 'bar' ? (side === 'W' ? 24 : -1) : from;
+    const to = side === 'W' ? fromVal - die : fromVal + die;
+    if (to >= 0 && to <= 23) return to;
+    return 'off';
+  }
+
+  // Returns {to, hits} if legal, else null
+  function isLegalMove(state, side, from, die) {
+    if (from === 'bar') {
+      if (state.bar[side] <= 0) return null;
+    } else {
+      if (state.bar[side] > 0) return null;
+      if (ownerOf(state.board[from]) !== side) return null;
+    }
+    const to = destinationForDie(side, from, die);
+    if (to === 'off') {
+      if (!allCheckersInHome(state, side)) return null;
+      const dist = pipDistance(side, from);
+      if (die === dist) return { to: 'off' };
+      if (die > dist) {
+        const [lo, hi] = homeRange(side);
+        for (let i = lo; i <= hi; i++) {
+          if (ownerOf(state.board[i]) === side && pipDistance(side, i) > dist) return null;
+        }
+        return { to: 'off' };
+      }
+      return null;
+    }
+    const occ = state.board[to];
+    const owner = ownerOf(occ);
+    if (owner === null || owner === side) return { to };
+    if (Math.abs(occ) === 1) return { to, hits: true };
+    return null;
+  }
+
+  function generateLegalSources(state, side, diceValues) {
+    const distinct = [...new Set(diceValues)];
+    const sources = [];
+    if (state.bar[side] > 0) {
+      if (distinct.some(d => isLegalMove(state, side, 'bar', d))) sources.push('bar');
+      return sources;
+    }
+    for (let i = 0; i < 24; i++) {
+      if (ownerOf(state.board[i]) !== side) continue;
+      if (distinct.some(d => isLegalMove(state, side, i, d))) sources.push(i);
+    }
+    return sources;
+  }
+
+  function hasAnyLegalMove(state, side, diceValues) {
+    return generateLegalSources(state, side, diceValues).length > 0;
+  }
+
+  function applyMove(state, side, from, die) {
+    const nb = state.board.slice();
+    const nbar = { ...state.bar };
+    const noff = { ...state.off };
+    const move = isLegalMove(state, side, from, die);
+
+    if (from === 'bar') nbar[side]--; else nb[from] -= sign(side);
+
+    if (move.to === 'off') {
+      noff[side]++;
+    } else {
+      const destOwner = ownerOf(nb[move.to]);
+      if (destOwner && destOwner !== side) {
+        nbar[destOwner]++;
+        nb[move.to] = 0;
+      }
+      nb[move.to] += sign(side);
+    }
+    return { board: nb, bar: nbar, off: noff, to: move.to, hits: !!move.hits };
+  }
+
+  function pipCount(state, side) {
+    let total = state.bar[side] * 25;
+    for (let i = 0; i < 24; i++) {
+      if (ownerOf(state.board[i]) === side) total += Math.abs(state.board[i]) * pipDistance(side, i);
+    }
+    return total;
+  }
+
+  function evaluate(state, side) {
+    const opp = otherSide(side);
+    let score = (pipCount(state, opp) - pipCount(state, side)) * 2;
+    score += state.off[side] * 15 - state.off[opp] * 15;
+    score -= state.bar[side] * 20;
+    score += state.bar[opp] * 20;
+    for (let i = 0; i < 24; i++) {
+      const n = state.board[i];
+      if (n === 0) continue;
+      const owner = ownerOf(n);
+      const [lo, hi] = homeRange(owner);
+      const inOwnHome = i >= lo && i <= hi;
+      if (Math.abs(n) === 1) {
+        score += (owner === side ? -6 : 6) - (inOwnHome ? 0 : (owner === side ? 2 : -2));
+      } else if (Math.abs(n) >= 2) {
+        score += (owner === side ? 1 : -1) * (3 + (inOwnHome ? 2 : 0));
+      }
+    }
+    return score;
+  }
+
+  function rollDice() {
+    const d1 = 1 + Math.floor(Math.random() * 6);
+    const d2 = 1 + Math.floor(Math.random() * 6);
+    return d1 === d2 ? [d1, d1, d1, d1] : [d1, d2];
+  }
+
+  // Enumerate all move sequences for `side` given an ordered dice list, from a state {board,bar,off}.
+  function enumerateSequences(state, side, diceList) {
+    if (diceList.length === 0) return [{ state, moves: [], used: 0 }];
+    const die = diceList[0];
+    const rest = diceList.slice(1);
+    const sources = generateLegalSourcesForDie(state, side, die);
+
+    if (sources.length === 0) {
+      // die can't be used at all here; skip it and continue
+      return enumerateSequences(state, side, rest);
+    }
+
+    let results = [];
+    for (const src of sources) {
+      const result = applyMove(state, side, src, die);
+      const nextState = { board: result.board, bar: result.bar, off: result.off };
+      const subResults = enumerateSequences(nextState, side, rest);
+      for (const sr of subResults) {
+        results.push({
+          state: sr.state,
+          moves: [{ from: src, die, to: result.to, hits: result.hits }].concat(sr.moves),
+          used: sr.used + 1
+        });
+      }
+    }
+    return results;
+  }
+
+  function generateLegalSourcesForDie(state, side, die) {
+    const sources = [];
+    if (state.bar[side] > 0) {
+      if (isLegalMove(state, side, 'bar', die)) sources.push('bar');
+      return sources;
+    }
+    for (let i = 0; i < 24; i++) {
+      if (ownerOf(state.board[i]) === side && isLegalMove(state, side, i, die)) sources.push(i);
+    }
+    return sources;
+  }
+
+  function pickAISequence() {
+    const diceOrders = (dice.length === 2 && dice[0] !== dice[1]) ? [dice, [dice[1], dice[0]]] : [dice];
+    let all = [];
+    for (const order of diceOrders) {
+      all = all.concat(enumerateSequences({ board, bar, off }, aiSide, order));
+    }
+    if (all.length === 0) return null;
+    const maxUsed = Math.max(...all.map(r => r.used));
+    const candidates = all.filter(r => r.used === maxUsed);
+    let best = null, bestScore = -Infinity;
+    for (const c of candidates) {
+      const noisy = evaluate(c.state, aiSide) + (Math.random() - 0.5) * aiNoise;
+      if (noisy > bestScore) { bestScore = noisy; best = c; }
+    }
+    return best;
+  }
+
+  // --- Rendering ---
+  function pointForIdx(idx) { return idx + 1; }
+
+  function cellFor(point) {
+    if (point >= 13 && point <= 18) return { col: point - 12, row: 1 };
+    if (point >= 19 && point <= 24) return { col: point - 11, row: 1 };
+    if (point >= 7 && point <= 12) return { col: 13 - point, row: 2 };
+    return { col: 14 - point, row: 2 };
+  }
+
+  function makeChecker(side, overflowLabel) {
+    const c = document.createElement('div');
+    c.className = 'checker ' + (side === 'W' ? 'crimson' : 'ebony');
+    if (overflowLabel) {
+      const n = document.createElement('div');
+      n.className = 'n';
+      n.textContent = overflowLabel;
+      c.appendChild(n);
+    }
+    return c;
+  }
+
+  function render() {
+    boardEl.innerHTML = '';
+
+    for (let point = 1; point <= 24; point++) {
+      const idx = point - 1;
+      const { col, row } = cellFor(point);
+      const cell = document.createElement('div');
+      cell.className = 'point row' + row + (col % 2 === 0 ? ' alt' : '');
+      cell.style.gridColumn = String(col);
+      cell.style.gridRow = String(row);
+      cell.dataset.point = point;
+
+      const n = board[idx];
+      if (n !== 0) {
+        const side = ownerOf(n);
+        const count = Math.abs(n);
+        const shown = Math.min(count, 5);
+        for (let k = 0; k < shown; k++) {
+          const isTop = k === shown - 1 && count > 5;
+          cell.appendChild(makeChecker(side, isTop ? String(count) : null));
+        }
+      }
+
+      if (currentPlayer === humanSide && !gameOver && !aiThinking) {
+        const legalSrc = generateLegalSources({ board, bar, off }, humanSide, dice);
+        if (legalSrc.includes(idx) && !selected) cell.classList.add('own-src');
+        if (selected === idx) cell.classList.add('selected-src');
+        const destMatch = legalDestsForSelected.find(d => d.to === idx);
+        if (destMatch) { cell.classList.add('dest'); if (destMatch.hits) cell.classList.add('hit'); }
+      }
+
+      cell.addEventListener('click', () => onCellClick(idx));
+      boardEl.appendChild(cell);
+    }
+
+    // bar cells
+    const barB = document.createElement('div');
+    barB.className = 'bar-cell';
+    barB.style.gridColumn = '7'; barB.style.gridRow = '1';
+    for (let k = 0; k < bar.B; k++) barB.appendChild(makeChecker('B'));
+    if (currentPlayer === humanSide && humanSide === 'B' && bar.B > 0 && !gameOver && !aiThinking) {
+      if (!selected) barB.classList.add('own-src');
+      if (selected === 'bar') barB.classList.add('selected-src');
+    }
+    barB.addEventListener('click', () => onCellClick('bar'));
+    boardEl.appendChild(barB);
+
+    const barW = document.createElement('div');
+    barW.className = 'bar-cell';
+    barW.style.gridColumn = '7'; barW.style.gridRow = '2';
+    for (let k = 0; k < bar.W; k++) barW.appendChild(makeChecker('W'));
+    if (currentPlayer === humanSide && humanSide === 'W' && bar.W > 0 && !gameOver && !aiThinking) {
+      if (!selected) barW.classList.add('own-src');
+      if (selected === 'bar') barW.classList.add('selected-src');
+    }
+    barW.addEventListener('click', () => onCellClick('bar'));
+    boardEl.appendChild(barW);
+
+    // off trays
+    const offB = document.createElement('div');
+    offB.className = 'off-cell';
+    offB.style.gridColumn = '14'; offB.style.gridRow = '1';
+    for (let k = 0; k < Math.min(off.B, 10); k++) offB.appendChild(makeChecker('B'));
+    const offBBadge = document.createElement('div');
+    offBBadge.className = 'count-badge';
+    offBBadge.textContent = off.B;
+    offB.appendChild(offBBadge);
+    if (currentPlayer === humanSide && humanSide === 'B' && legalDestsForSelected.some(d => d.to === 'off')) offB.classList.add('dest');
+    offB.addEventListener('click', () => onOffClick());
+    boardEl.appendChild(offB);
+
+    const offW = document.createElement('div');
+    offW.className = 'off-cell';
+    offW.style.gridColumn = '14'; offW.style.gridRow = '2';
+    for (let k = 0; k < Math.min(off.W, 10); k++) offW.appendChild(makeChecker('W'));
+    const offWBadge = document.createElement('div');
+    offWBadge.className = 'count-badge';
+    offWBadge.textContent = off.W;
+    offW.appendChild(offWBadge);
+    if (currentPlayer === humanSide && humanSide === 'W' && legalDestsForSelected.some(d => d.to === 'off')) offW.classList.add('dest');
+    offW.addEventListener('click', () => onOffClick());
+    boardEl.appendChild(offW);
+
+    turnDot.className = 'turn-dot ' + (currentPlayer === humanSide ? 'you' : 'opp');
+    turnText.textContent = currentPlayer === humanSide ? 'Your move' : "Opponent's move";
+
+    diceTray.innerHTML = '';
+    for (const d of dice) {
+      const die = document.createElement('div');
+      die.className = 'die';
+      die.textContent = d;
+      diceTray.appendChild(die);
+    }
+
+    document.getElementById('yourOff').textContent = off[humanSide];
+    document.getElementById('oppOff').textContent = off[aiSide];
+  }
+
+  function logMsg(msg) {
+    const div = document.createElement('div');
+    div.textContent = msg;
+    logEl.insertBefore(div, logEl.firstChild);
+  }
+
+  function pointNameForCellIdx(idxOrBar) {
+    return idxOrBar === 'bar' ? 'the bar' : String(pointForIdx(idxOrBar));
+  }
+
+  function logMoveMsg(side, mv) {
+    const who = labelFor(side);
+    const dest = mv.to === 'off' ? 'off the board' : 'point ' + pointForIdx(mv.to);
+    let msg = `${who} move${side === humanSide ? '' : 's'} from ${pointNameForCellIdx(mv.from)} to ${dest} (die ${mv.die})`;
+    if (mv.hits) msg += ' — hits a blot!';
+    logMsg(msg + '.');
+  }
+
+  function snapshot() {
+    return {
+      board: board.slice(), bar: { ...bar }, off: { ...off },
+      dice: dice.slice(), currentPlayer
+    };
+  }
+
+  function onCellClick(idxOrBar) {
+    if (gameOver || aiThinking || currentPlayer !== humanSide) return;
+
+    if (selected !== null) {
+      const match = legalDestsForSelected.find(d => d.to === idxOrBar);
+      if (match) { performMove(selected, match.die); return; }
+    }
+
+    const legalSrc = generateLegalSources({ board, bar, off }, humanSide, dice);
+    if (legalSrc.includes(idxOrBar)) {
+      selected = idxOrBar;
+      const distinct = [...new Set(dice)];
+      legalDestsForSelected = distinct
+        .map(d => { const m = isLegalMove({ board, bar, off }, humanSide, idxOrBar, d); return m ? { die: d, to: m.to, hits: m.hits } : null; })
+        .filter(Boolean);
+      statusLine.textContent = 'Choose a destination.';
+      render();
+      return;
+    }
+
+    selected = null;
+    legalDestsForSelected = [];
+    render();
+  }
+
+  function onOffClick() {
+    if (selected === null) return;
+    onCellClick('off');
+  }
+
+  function performMove(from, die) {
+    history.push(snapshot());
+    const state = { board, bar, off };
+    const result = applyMove(state, currentPlayer, from, die);
+    board = result.board; bar = result.bar; off = result.off;
+
+    logMoveMsg(currentPlayer, { from, die, to: result.to, hits: result.hits });
+
+    const dieIdx = dice.indexOf(die);
+    dice.splice(dieIdx, 1);
+    selected = null;
+    legalDestsForSelected = [];
+
+    if (off[currentPlayer] === 15) { finishGame(currentPlayer); return; }
+
+    if (dice.length === 0) {
+      endTurnSwitch();
+    } else if (!hasAnyLegalMove({ board, bar, off }, currentPlayer, dice)) {
+      logMsg('No further legal moves — turn passes.');
+      endTurnSwitch();
+    } else {
+      render();
+      statusLine.textContent = 'Choose a checker to move.';
+    }
+  }
+
+  function runAITurn() {
+    if (gameOver) return;
+    const seq = pickAISequence();
+    aiThinking = false;
+    if (!seq || seq.moves.length === 0) {
+      logMsg(`${labelFor(aiSide)} has no legal move and forfeits the turn.`);
+      dice = [];
+      endTurnSwitch();
+      return;
+    }
+    history.push(snapshot());
+    for (const mv of seq.moves) {
+      const result = applyMove({ board, bar, off }, aiSide, mv.from, mv.die);
+      board = result.board; bar = result.bar; off = result.off;
+      logMoveMsg(aiSide, mv);
+    }
+    dice = [];
+    if (off[aiSide] === 15) { finishGame(aiSide); return; }
+    endTurnSwitch();
+  }
+
+  function endTurnSwitch() {
+    currentPlayer = otherSide(currentPlayer);
+    startTurn();
+  }
+
+  function startTurn() {
+    if (gameOver) return;
+    dice = rollDice();
+    logMsg(`${labelFor(currentPlayer)} roll${currentPlayer === humanSide ? '' : 's'} ${dice.slice(0, dice.length === 4 ? 2 : dice.length).join('-')}${dice.length === 4 ? ' (double)' : ''}.`);
+
+    if (!hasAnyLegalMove({ board, bar, off }, currentPlayer, dice)) {
+      logMsg(`${labelFor(currentPlayer)} ha${currentPlayer === humanSide ? 've' : 's'} no legal move.`);
+      render();
+      dice = [];
+      setTimeout(endTurnSwitch, currentPlayer === humanSide ? 700 : 400);
+      return;
+    }
+
+    render();
+    if (currentPlayer === humanSide) {
+      statusLine.textContent = 'Choose a checker to move.';
+    } else {
+      aiThinking = true;
+      statusLine.innerHTML = 'The opponent is considering <span class="thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
+      setTimeout(runAITurn, 550);
+    }
+  }
+
+  function finishGame(winnerSide) {
+    gameOver = true;
+    render();
+    const winnerLabel = winnerSide === humanSide ? 'You' : 'The opponent';
+    statusLine.textContent = `${winnerLabel === 'You' ? 'You have' : 'The opponent has'} borne off all checkers.`;
+    logMsg(`— ${winnerLabel === 'You' ? 'You win' : 'The opponent wins'} the game —`);
+
+    overlayTitle.textContent = winnerSide === humanSide ? 'Victory' : 'Defeat';
+    overlayText.textContent = winnerSide === humanSide
+      ? 'You have borne off all fifteen checkers first.'
+      : 'The opponent has borne off all fifteen checkers first.';
+    overlay.classList.add('show');
+  }
+
+  function undo() {
+    if (aiThinking || history.length === 0) return;
+    let snap = history.pop();
+    if (snap.currentPlayer === aiSide && history.length > 0) {
+      snap = history.pop();
+    }
+    board = snap.board; bar = snap.bar; off = snap.off; dice = snap.dice; currentPlayer = snap.currentPlayer;
+    gameOver = false;
+    selected = null;
+    legalDestsForSelected = [];
+    overlay.classList.remove('show');
+    statusLine.textContent = 'Move undone.';
+    render();
+
+    if (currentPlayer === aiSide) {
+      aiThinking = true;
+      setTimeout(runAITurn, 300);
+    }
+  }
+
+  function newGame() {
+    board = initBoard();
+    bar = { W: 0, B: 0 };
+    off = { W: 0, B: 0 };
+    dice = [];
+    currentPlayer = 'W';
+    selected = null;
+    legalDestsForSelected = [];
+    history = [];
+    gameOver = false;
+    aiThinking = false;
+    logEl.innerHTML = '';
+    overlay.classList.remove('show');
+
+    humanSide = document.getElementById('side').value;
+    aiSide = otherSide(humanSide);
+    aiNoise = parseInt(document.getElementById('difficulty').value, 10);
+    currentPlayer = humanSide;
+
+    logMsg('A new game begins.');
+    startTurn();
+  }
+
+  document.getElementById('newGameBtn').addEventListener('click', newGame);
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('overlayBtn').addEventListener('click', newGame);
+  document.getElementById('difficulty').addEventListener('change', () => {
+    aiNoise = parseInt(document.getElementById('difficulty').value, 10);
+  });
+
+  newGame();
+})();
+</script>
+
+</body>
+</html>

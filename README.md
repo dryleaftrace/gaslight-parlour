@@ -55,13 +55,25 @@ Texas hold'em against the same three regulars, blinds instead of antes.
 - Best-of-seven hand evaluation (2 hole + 5 community cards) with split-pot handling for ties
 - Same fixed-limit betting engine as The Sharper's Table, adapted for community cards
 
+### 🌰 The Mancala Room — Kalah
+Classic two-row Kalah, four seeds a pit, against an alpha-beta opponent.
+- Full sowing rules: skip the opponent's store, extra turn on landing in your own, capture on an empty landing pit
+- Automatic sweep of remaining seeds when either row empties
+- AI opponent with the same Novice-to-Master difficulty selector as the other rooms
+
+### ⚀ The Backgammon Room
+Standard backgammon, no doubling cube, against a heuristic opponent.
+- Full rules: bar entry, blots and hits, exact and overshoot bear-off
+- AI enumerates full dice-sequence combinations each turn (including doubles) and picks the strongest by pip count and board safety
+- Difficulty selector adds evaluation noise rather than search depth, from blundering Novice to precise Master
+
 ---
 
 ## Technical Notes
 
 - **Single-file apps** — each room is one self-contained HTML file (~1,000–1,500 lines of HTML, CSS, and vanilla JS). No bundler, no npm, no framework.
 - **Zero dependencies** — no React, no jQuery, no physics, chess, or poker libraries. Every AI, hand evaluator, and animation is built from scratch.
-- **Shared aesthetic** — Didot/Palatino type, wood-grain and brass-bright accents across all seven files, so the arcade reads as one coherent place rather than a pile of unrelated demos.
+- **Shared aesthetic** — Didot/Palatino type, wood-grain and brass-bright accents across all nine files, so the arcade reads as one coherent place rather than a pile of unrelated demos.
 - **Shared card system** — the three card-table rooms (Patience, Sharper's Table, River Room) reuse the same `.pcard` rendering pattern and deck/shuffle helpers, styled consistently but built independently per file.
 - **Relative linking** — the hub links to each room via percent-encoded relative hrefs (`The%20Draughts%20Room.html`, `Ink%26Ivory.html`, `The%20Sharper's%20Table.html`) so the whole arcade works identically from a local folder or from GitHub Pages.
 

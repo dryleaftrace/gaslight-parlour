@@ -291,6 +291,66 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.5);
   }
 
+  /* Mancala Room icon: mini pit board */
+  .icon-mancala {
+    background: linear-gradient(160deg, #2e1c11, #1c1109);
+    display: grid;
+    grid-template-columns: 12px repeat(6, 1fr) 12px;
+    grid-template-rows: repeat(2, 1fr);
+    align-items: stretch;
+    justify-items: stretch;
+    gap: 3px;
+    padding: 10px;
+  }
+  .icon-mancala .pit {
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 35% 30%, #3a2718, var(--felt) 70%, #0c1410 100%);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-mancala .store {
+    grid-row: 1 / 3;
+    border-radius: 4px;
+    background: radial-gradient(ellipse at 35% 25%, #3a2718, var(--felt) 70%, #0c1410 100%);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+  }
+  .icon-mancala .marble {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, var(--brass-bright), var(--brass) 55%, #8a6a3c 100%);
+    box-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  }
+
+  /* Backgammon Room icon: mini triangle points */
+  .icon-backgammon {
+    background: linear-gradient(160deg, #2e1c11, #1c1109);
+    display: grid;
+    grid-template-columns: repeat(6, 1fr) 8px repeat(6, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    align-items: stretch;
+    justify-items: stretch;
+    gap: 2px;
+    padding: 8px;
+  }
+  .icon-backgammon .pt {
+    background: var(--board-dark, #4a3121);
+    display: flex;
+    justify-content: center;
+  }
+  .icon-backgammon .pt.alt { background: var(--board-light, #d9c3a0); }
+  .icon-backgammon .pt.row1 { clip-path: polygon(0 0, 100% 0, 50% 90%); align-items: flex-start; }
+  .icon-backgammon .pt.row2 { clip-path: polygon(0 100%, 100% 100%, 50% 10%); align-items: flex-end; }
+  .icon-backgammon .bar { background: var(--felt); }
+  .icon-backgammon .chk {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin: 1px 0;
+  }
+  .icon-backgammon .chk.crimson { background: radial-gradient(circle at 32% 28%, var(--crimson-light), var(--crimson) 60%, #5c1219); }
+  .icon-backgammon .chk.ebony { background: radial-gradient(circle at 32% 28%, #4a4a4a, #000); }
+
   .room-name {
     font-family: 'Didot', 'Bodoni MT', Georgia, serif;
     font-size: 1.4rem;
@@ -406,7 +466,7 @@
   </div>
 </header>
 <div class="divider"></div>
-<p class="intro">Down the hall, past the coat room, six doors stand ajar and one still locked.
+<p class="intro">Down the hall, past the coat room, eight doors stand ajar and one still locked.
 Choose your room — the felt is brushed, the boards are set, and the house always has time for one more game.</p>
 
 <div class="rooms">
@@ -460,6 +520,24 @@ Choose your room — the felt is brushed, the boards are set, and the house alwa
       <div class="room-icon icon-river" id="riverIcon"></div>
       <h2 class="room-name">The River Room</h2>
       <p class="room-desc">Texas hold'em, blinds ten and twenty. Four streets, four chairs, and a board that turns fortunes on the last card.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
+  <a class="room-card" href="The%20Mancala%20Room.html">
+    <div class="room-inner">
+      <div class="room-icon icon-mancala" id="mancalaIcon"></div>
+      <h2 class="room-name">The Mancala Room</h2>
+      <p class="room-desc">Kalah rules, four seeds a pit. Sow the board, capture on an empty landing, and mind the store that isn't yours.</p>
+      <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
+    </div>
+  </a>
+
+  <a class="room-card" href="The%20Backgammon%20Room.html">
+    <div class="room-inner">
+      <div class="room-icon icon-backgammon" id="backgammonIcon"></div>
+      <h2 class="room-name">The Backgammon Room</h2>
+      <p class="room-desc">Standard rules, no doubling cube. Bar entries, blots, and a bear-off race timed by the roll.</p>
       <div class="room-enter">Enter the Room <span class="arrow">&rarr;</span></div>
     </div>
   </a>
@@ -604,6 +682,84 @@ Choose your room — the felt is brushed, the boards are set, and the house alwa
       dot.style.top = p.y + 'px';
       table.appendChild(dot);
     });
+  })();
+
+  // build the mini mancala pit board icon
+  (function() {
+    const board = document.getElementById('mancalaIcon');
+    const seeds = [3, 1, 4, 0, 2, 3, 2, 0, 3, 1, 4, 2];
+    const storeB = document.createElement('div');
+    storeB.className = 'store';
+    storeB.style.gridColumn = '1'; storeB.style.gridRow = '1 / 3';
+    board.appendChild(storeB);
+
+    for (let col = 0; col < 6; col++) {
+      const pit = document.createElement('div');
+      pit.className = 'pit';
+      pit.style.gridColumn = String(col + 2); pit.style.gridRow = '1';
+      for (let k = 0; k < seeds[col]; k++) {
+        const m = document.createElement('div');
+        m.className = 'marble';
+        pit.appendChild(m);
+      }
+      board.appendChild(pit);
+    }
+    for (let col = 0; col < 6; col++) {
+      const pit = document.createElement('div');
+      pit.className = 'pit';
+      pit.style.gridColumn = String(col + 2); pit.style.gridRow = '2';
+      for (let k = 0; k < seeds[col + 6]; k++) {
+        const m = document.createElement('div');
+        m.className = 'marble';
+        pit.appendChild(m);
+      }
+      board.appendChild(pit);
+    }
+
+    const storeA = document.createElement('div');
+    storeA.className = 'store';
+    storeA.style.gridColumn = '8'; storeA.style.gridRow = '1 / 3';
+    board.appendChild(storeA);
+  })();
+
+  // build the mini backgammon points icon
+  (function() {
+    const board = document.getElementById('backgammonIcon');
+    const checkers = { '1,2': 'crimson', '2,5': 'ebony', '1,10': 'ebony', '2,11': 'crimson' };
+    for (let col = 1; col <= 6; col++) {
+      for (let row = 1; row <= 2; row++) {
+        const pt = document.createElement('div');
+        pt.className = 'pt row' + row + (col % 2 === 0 ? ' alt' : '');
+        pt.style.gridColumn = String(col); pt.style.gridRow = String(row);
+        const key = row + ',' + col;
+        if (checkers[key]) {
+          const chk = document.createElement('div');
+          chk.className = 'chk ' + checkers[key];
+          pt.appendChild(chk);
+        }
+        board.appendChild(pt);
+      }
+    }
+    const bar1 = document.createElement('div');
+    bar1.className = 'bar'; bar1.style.gridColumn = '7'; bar1.style.gridRow = '1';
+    board.appendChild(bar1);
+    const bar2 = document.createElement('div');
+    bar2.className = 'bar'; bar2.style.gridColumn = '7'; bar2.style.gridRow = '2';
+    board.appendChild(bar2);
+    for (let col = 8; col <= 13; col++) {
+      for (let row = 1; row <= 2; row++) {
+        const pt = document.createElement('div');
+        pt.className = 'pt row' + row + (col % 2 === 0 ? ' alt' : '');
+        pt.style.gridColumn = String(col); pt.style.gridRow = String(row);
+        const key = row + ',' + col;
+        if (checkers[key]) {
+          const chk = document.createElement('div');
+          chk.className = 'chk ' + checkers[key];
+          pt.appendChild(chk);
+        }
+        board.appendChild(pt);
+      }
+    }
   })();
 </script>
 
