@@ -350,19 +350,34 @@
   }
 
   .tip-jar {
-    display: inline-block;
     margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .tip-label {
     font-size: 0.72rem;
     letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brass);
+  }
+  .tip-links {
+    display: flex;
+    gap: 10px;
+  }
+  .tip-links a {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--brass);
     text-decoration: none;
     border: 1px solid rgba(200,161,101,0.3);
     border-radius: 20px;
-    padding: 7px 18px;
+    padding: 6px 14px;
     transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
   }
-  .tip-jar:hover {
+  .tip-links a:hover {
     color: var(--brass-bright);
     border-color: rgba(230,199,137,0.6);
     background: rgba(230,199,137,0.08);
@@ -382,7 +397,13 @@
   <div class="crest">&#10022;</div>
   <h1>The Gaslight Parlour</h1>
   <p class="subtitle">An Evening's Collection of Games</p>
-  <a class="tip-jar" href="https://www.buymeacoffee.com/dryleaftrace" target="_blank" rel="noopener">&#9749; Buy the house a round</a>
+  <div class="tip-jar">
+    <span class="tip-label">&#9749; Buy the house a round</span>
+    <div class="tip-links">
+      <a href="https://www.buymeacoffee.com/dryleaftrace" target="_blank" rel="noopener">Buy Me a Coffee</a>
+      <a href="https://account.venmo.com/u/dryleaftrace" target="_blank" rel="noopener">Venmo</a>
+    </div>
+  </div>
 </header>
 <div class="divider"></div>
 <p class="intro">Down the hall, past the coat room, six doors stand ajar and one still locked.
