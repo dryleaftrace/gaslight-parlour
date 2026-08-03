@@ -290,6 +290,39 @@
   .overlay-card h2 { color: var(--brass-bright); font-size: 1.8rem; margin: 0 0 8px; letter-spacing: 0.05em; font-weight: 400; }
   .overlay-card p { color: #c9b896; margin: 0 0 22px; font-style: italic; }
 
+  .rules-btn {
+    margin-top: 14px;
+    display: inline-block;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brass);
+    background: transparent;
+    border: 1px solid rgba(200,161,101,0.3);
+    border-radius: 20px;
+    padding: 7px 18px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+  .rules-btn:hover { color: var(--brass-bright); border-color: rgba(230,199,137,0.6); background: rgba(230,199,137,0.08); }
+
+  .rules-card { max-width: 480px; max-height: 80vh; overflow-y: auto; text-align: left; }
+  .rules-card h2 { text-align: center; }
+  .rules-card h3 {
+    color: var(--brass-bright);
+    font-size: 0.92rem;
+    margin: 18px 0 6px;
+    letter-spacing: 0.05em;
+    font-weight: 400;
+    border-bottom: 1px solid rgba(200,161,101,0.2);
+    padding-bottom: 4px;
+  }
+  .rules-card h3:first-of-type { margin-top: 4px; }
+  .rules-card p, .rules-card li { color: #c9b896; font-size: 0.85rem; line-height: 1.6; font-style: normal; }
+  .rules-card ul { margin: 0 0 4px; padding-left: 20px; }
+  .rules-card .btn { margin-top: 16px; }
+
   footer { margin-top: 26px; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: #6a5a44; position: relative; z-index: 1; }
 
   @media (max-width: 720px) {
@@ -308,6 +341,7 @@
 <header>
   <h1>The <span class="accent">Mancala</span> Room</h1>
   <p class="subtitle">A Quiet Game of Counting Houses</p>
+  <button class="rules-btn" id="rulesBtn">How to Play</button>
 </header>
 <div class="divider"></div>
 
@@ -362,6 +396,23 @@
 </div>
 
 <footer>Est. this evening &middot; Kalah Rules, 4 Seeds a Pit, Capture on Empty</footer>
+
+<div class="overlay" id="rulesOverlay">
+  <div class="overlay-card rules-card">
+    <h2>How to Play</h2>
+    <h3>The Board</h3>
+    <p>Two rows of six pits, four seeds in each, plus a store at either end &mdash; yours on your right.</p>
+    <h3>Sowing</h3>
+    <p>On your turn, pick one of your own pits and sow its seeds one at a time into each pit that follows, moving counter-clockwise around the board &mdash; including your own store, but skipping over your opponent's store entirely.</p>
+    <h3>Extra Turns</h3>
+    <p>If your last seed lands in your own store, you go again.</p>
+    <h3>Capturing</h3>
+    <p>If your last seed lands in an empty pit on your own side, you capture it along with every seed in the pit directly opposite &mdash; all of it goes into your store.</p>
+    <h3>Winning</h3>
+    <p>When one side's pits are all empty, the game ends and each player keeps whatever remains on their own side. Whoever has more seeds in their store wins.</p>
+    <button class="btn" id="rulesCloseBtn">Close</button>
+  </div>
+</div>
 
 <div class="overlay" id="overlay">
   <div class="overlay-card">
@@ -717,6 +768,12 @@
       statusLine.textContent = 'Choose a pit to begin.';
     }
   }
+
+  const rulesOverlay = document.getElementById('rulesOverlay');
+  document.getElementById('rulesBtn').addEventListener('click', () => rulesOverlay.classList.add('show'));
+  document.getElementById('rulesCloseBtn').addEventListener('click', () => rulesOverlay.classList.remove('show'));
+  rulesOverlay.addEventListener('click', (e) => { if (e.target === rulesOverlay) rulesOverlay.classList.remove('show'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') rulesOverlay.classList.remove('show'); });
 
   document.getElementById('newGameBtn').addEventListener('click', newGame);
   document.getElementById('undoBtn').addEventListener('click', undo);
