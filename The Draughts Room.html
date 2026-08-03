@@ -305,14 +305,28 @@
     color: #a89476;
   }
 
-  select {
+  select, input[type="text"], input[type="password"] {
     background: #241408;
     color: var(--parchment);
     border: 1px solid rgba(200,161,101,0.35);
     border-radius: 4px;
     padding: 8px 10px;
-    cursor: pointer;
   }
+  select { cursor: pointer; }
+  input[type="text"], input[type="password"] { width: 100%; }
+
+  .mp-note { font-size: 0.8rem; color: #a89476; font-style: italic; }
+  .mp-games-list { margin-top: 10px; }
+  .mp-game-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.8rem;
+    border-bottom: 1px dotted rgba(200,161,101,0.15);
+  }
+  .mp-game-row .btn { padding: 4px 10px; font-size: 0.65rem; flex-shrink: 0; }
 
   .btn {
     background: linear-gradient(160deg, var(--brass-bright), var(--brass) 60%, #9c7c48);
@@ -505,6 +519,49 @@
       <div class="btn-row">
         <button class="btn" id="newGameBtn">New Game</button>
         <button class="btn secondary" id="undoBtn">Undo</button>
+      </div>
+    </div>
+
+    <div class="card" id="mpCard">
+      <h2>Multiplayer</h2>
+      <div id="mpUnavailable" style="display:none">
+        <p class="mp-note">Multiplayer needs the local server running — see server/README.md.</p>
+      </div>
+      <div id="mpSignedOut" style="display:none">
+        <div class="field">
+          <label for="mpUsername">Username</label>
+          <input type="text" id="mpUsername" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="mpPassword">Password</label>
+          <input type="password" id="mpPassword" autocomplete="current-password">
+        </div>
+        <div class="status-line" id="mpAuthStatus"></div>
+        <div class="btn-row">
+          <button class="btn" id="mpSignInBtn">Sign In</button>
+          <button class="btn secondary" id="mpSignUpBtn">Sign Up</button>
+        </div>
+      </div>
+      <div id="mpSignedIn" style="display:none">
+        <div class="status-line">Signed in as <span id="mpWhoAmI"></span></div>
+        <div class="btn-row">
+          <button class="btn" id="mpNewGameBtn">New Multiplayer Game</button>
+          <button class="btn secondary" id="mpSignOutBtn">Sign Out</button>
+        </div>
+        <div class="field">
+          <label for="mpJoinId">Join with Game ID</label>
+          <div class="btn-row">
+            <input type="text" id="mpJoinId" placeholder="e.g. 14">
+            <button class="btn secondary" id="mpJoinBtn">Join</button>
+          </div>
+        </div>
+        <div class="mp-games-list" id="mpGamesList"></div>
+      </div>
+      <div id="mpInGame" style="display:none">
+        <div class="status-line" id="mpGameStatusLine"></div>
+        <div class="btn-row">
+          <button class="btn secondary" id="mpLeaveBtn">Leave Multiplayer</button>
+        </div>
       </div>
     </div>
 
@@ -850,6 +907,7 @@
 
   function onSquareClick(e) {
     if (gameOver || aiThinking) return;
+    if (mp.gameId && mp.status !== 'active') return;
     if (currentPlayer !== humanSide) return;
 
     const r = parseInt(e.currentTarget.dataset.r, 10);
@@ -917,12 +975,22 @@
     allLegalMoves = generateMoves(board, currentPlayer);
 
     if (allLegalMoves.length === 0) {
-      finishGame(otherSide(currentPlayer));
+      const winner = otherSide(currentPlayer);
+      if (mp.gameId) {
+        mpPushMove(true, winner === 'crimson' ? 'a' : 'b');
+        mpStopPolling();
+      }
+      finishGame(winner);
       return;
     }
 
     render();
     statusLine.textContent = currentPlayer === humanSide ? 'Choose a piece to begin.' : 'The opponent is considering the board.';
+
+    if (mp.gameId) {
+      mpPushMove(false);
+      return;
+    }
 
     if (currentPlayer === aiSide) {
       aiThinking = true;
@@ -957,6 +1025,7 @@
   }
 
   function undo() {
+    if (mp.gameId) { logMsg('Undo is not available in multiplayer games.'); return; }
     if (aiThinking || history.length === 0) return;
     // undo back to the human's last decision point (pop until it's human's turn again, or just one step twice if AI made a move after)
     let snap = history.pop();
@@ -1012,20 +1081,316 @@
     }
   }
 
+  // ---------------- Multiplayer ----------------
+  const GAME_TYPE = 'draughts';
+  let mp = { user: null, gameId: null, role: null, status: null, version: 0, opponentName: null, pollTimer: null };
+
+  const mpEls = {
+    unavailable: document.getElementById('mpUnavailable'),
+    signedOut: document.getElementById('mpSignedOut'),
+    signedIn: document.getElementById('mpSignedIn'),
+    inGame: document.getElementById('mpInGame'),
+    username: document.getElementById('mpUsername'),
+    password: document.getElementById('mpPassword'),
+    authStatus: document.getElementById('mpAuthStatus'),
+    whoAmI: document.getElementById('mpWhoAmI'),
+    joinId: document.getElementById('mpJoinId'),
+    gamesList: document.getElementById('mpGamesList'),
+    gameStatusLine: document.getElementById('mpGameStatusLine')
+  };
+
+  async function mpApi(path, opts) {
+    opts = opts || {};
+    const res = await fetch(path, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+      ...opts
+    });
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) {
+      const err = new Error((data && data.error) || res.statusText);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  function mpShow(which) {
+    mpEls.unavailable.style.display = which === 'unavailable' ? '' : 'none';
+    mpEls.signedOut.style.display = which === 'signedOut' ? '' : 'none';
+    mpEls.signedIn.style.display = which === 'signedIn' ? '' : 'none';
+    mpEls.inGame.style.display = which === 'inGame' ? '' : 'none';
+  }
+
+  async function mpInit() {
+    try {
+      const data = await mpApi('/api/me');
+      mp.user = data.user;
+      mpEls.whoAmI.textContent = mp.user.username;
+      mpShow('signedIn');
+      mpRefreshGamesList();
+    } catch (err) {
+      if (err.status === 401) {
+        mp.user = null;
+        mpShow('signedOut');
+      } else {
+        mpShow('unavailable');
+      }
+    }
+  }
+
+  async function mpSignIn() {
+    mpEls.authStatus.textContent = '';
+    try {
+      const data = await mpApi('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ username: mpEls.username.value.trim(), password: mpEls.password.value })
+      });
+      mp.user = data.user;
+      mpEls.whoAmI.textContent = mp.user.username;
+      mpShow('signedIn');
+      mpRefreshGamesList();
+    } catch (err) {
+      mpEls.authStatus.textContent = err.message;
+    }
+  }
+
+  async function mpSignUp() {
+    mpEls.authStatus.textContent = '';
+    try {
+      const data = await mpApi('/api/signup', {
+        method: 'POST',
+        body: JSON.stringify({ username: mpEls.username.value.trim(), password: mpEls.password.value })
+      });
+      mp.user = data.user;
+      mpEls.whoAmI.textContent = mp.user.username;
+      mpShow('signedIn');
+      mpRefreshGamesList();
+    } catch (err) {
+      mpEls.authStatus.textContent = err.message;
+    }
+  }
+
+  async function mpSignOut() {
+    try { await mpApi('/api/logout', { method: 'POST' }); } catch (e) {}
+    mp.user = null;
+    mpLeaveGame();
+    mpShow('signedOut');
+  }
+
+  async function mpRefreshGamesList() {
+    try {
+      const data = await mpApi('/api/games');
+      mpEls.gamesList.innerHTML = '';
+      const relevant = data.games.filter(g => g.gameType === GAME_TYPE && g.status !== 'finished');
+      if (relevant.length === 0) {
+        mpEls.gamesList.innerHTML = '<div class="mp-note">No open games. Start one, or join a friend\'s.</div>';
+        return;
+      }
+      relevant.forEach(g => {
+        const row = document.createElement('div');
+        row.className = 'mp-game-row';
+        const opp = g.playerB ? (g.playerA.id === mp.user.id ? g.playerB.username : g.playerA.username) : '(waiting)';
+        const label = g.status === 'waiting' ? `#${g.id} — waiting for opponent` : `#${g.id} vs ${opp}${g.yourTurn ? ' — your turn' : ''}`;
+        const span = document.createElement('span');
+        span.textContent = label;
+        row.appendChild(span);
+        const btn = document.createElement('button');
+        btn.className = 'btn secondary';
+        btn.textContent = 'Resume';
+        btn.onclick = () => mpEnterGame(g.id);
+        row.appendChild(btn);
+        mpEls.gamesList.appendChild(row);
+      });
+    } catch (err) {
+      // the list is a nicety; ignore failures
+    }
+  }
+
+  async function mpNewGame() {
+    try {
+      const data = await mpApi('/api/games', { method: 'POST', body: JSON.stringify({ gameType: GAME_TYPE }) });
+      mpEnterGame(data.game.id, data.game);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function mpJoinGame() {
+    const id = mpEls.joinId.value.trim();
+    if (!id) return;
+    try {
+      const data = await mpApi('/api/games/' + id + '/join', { method: 'POST' });
+      mpEnterGame(data.game.id, data.game);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function mpEnterGame(id, gameData) {
+    mp.gameId = id;
+    const game = gameData || (await mpApi('/api/games/' + id)).game;
+    mp.role = game.playerA.id === mp.user.id ? 'a' : 'b';
+    mp.version = game.version;
+    mp.status = game.status;
+    mp.opponentName = mp.role === 'a' ? (game.playerB ? game.playerB.username : null) : game.playerA.username;
+
+    humanSide = mp.role === 'a' ? 'crimson' : 'ebony';
+    aiSide = null;
+    selected = null;
+    legalMovesForSelected = [];
+    history = [];
+    gameOver = false;
+    aiThinking = false;
+    overlay.classList.remove('show');
+    logEl.innerHTML = '';
+
+    if (game.state && game.state.board) {
+      board = game.state.board;
+      captures = game.state.captures;
+    } else {
+      board = initBoard();
+      captures = { crimson: 0, ebony: 0 };
+    }
+    currentPlayer = (game.status === 'active')
+      ? (game.currentTurn === mp.user.id ? humanSide : otherSide(humanSide))
+      : 'crimson';
+    allLegalMoves = generateMoves(board, currentPlayer);
+
+    mpShow('inGame');
+    logMsg('Multiplayer game #' + id + ' — you are ' + humanSide + '.');
+    mpUpdateGameStatusLine(game);
+    render();
+    if (game.status === 'active') {
+      statusLine.textContent = currentPlayer === humanSide ? 'Your move.' : 'Waiting for the opponent...';
+    }
+    mpStartPolling();
+  }
+
+  function mpUpdateGameStatusLine(game) {
+    if (game.status === 'waiting') {
+      mpEls.gameStatusLine.textContent = 'Waiting for an opponent to join. Game ID: ' + game.id;
+    } else if (game.status === 'finished') {
+      mpEls.gameStatusLine.textContent = 'Game #' + game.id + ' is over.';
+    } else {
+      mpEls.gameStatusLine.textContent = 'Playing #' + game.id + ' vs ' + (mp.opponentName || '...') + '.';
+    }
+  }
+
+  function mpLeaveGame() {
+    mpStopPolling();
+    mp.gameId = null;
+    mp.role = null;
+    mp.status = null;
+    mpShow(mp.user ? 'signedIn' : 'signedOut');
+    if (mp.user) mpRefreshGamesList();
+    newGame();
+  }
+
+  function mpStartPolling() {
+    mpStopPolling();
+    mp.pollTimer = setInterval(mpPoll, 2500);
+  }
+  function mpStopPolling() {
+    if (mp.pollTimer) { clearInterval(mp.pollTimer); mp.pollTimer = null; }
+  }
+
+  async function mpPoll() {
+    if (!mp.gameId) return;
+    try {
+      const data = await mpApi('/api/games/' + mp.gameId);
+      mpApplyRemote(data.game);
+    } catch (err) {
+      console.error('mpPoll failed:', err);
+    }
+  }
+
+  function mpApplyRemote(game) {
+    const statusChanged = game.status !== mp.status;
+    mp.status = game.status;
+
+    if (!mp.opponentName && game.playerB) {
+      mp.opponentName = mp.role === 'a' ? game.playerB.username : game.playerA.username;
+    }
+
+    mpUpdateGameStatusLine(game);
+
+    if (game.version === mp.version && !statusChanged) return;
+    mp.version = game.version;
+
+    if (game.status === 'waiting') return;
+
+    // game.state is still {} until the first move is made — both clients
+    // compute the same deterministic starting position locally, so there's
+    // nothing to hydrate yet; just keep what mpEnterGame already set up.
+    if (game.state && game.state.board) {
+      board = game.state.board;
+      captures = game.state.captures;
+    }
+    selected = null;
+    legalMovesForSelected = [];
+
+    if (game.status === 'finished') {
+      mpStopPolling();
+      gameOver = true;
+      const iWon = game.result === mp.role;
+      const draw = game.result === 'draw';
+      overlayTitle.textContent = draw ? 'Draw' : (iWon ? 'Victory' : 'Defeat');
+      overlayText.textContent = draw
+        ? 'The game ends in a draw.'
+        : (iWon ? 'You have won the room.' : 'Your opponent has won the room.');
+      overlay.classList.add('show');
+      logMsg('— multiplayer game over —');
+      render();
+      return;
+    }
+
+    currentPlayer = (game.currentTurn === mp.user.id) ? humanSide : otherSide(humanSide);
+    allLegalMoves = generateMoves(board, currentPlayer);
+    render();
+    statusLine.textContent = currentPlayer === humanSide ? 'Your move.' : 'Waiting for the opponent...';
+  }
+
+  async function mpPushMove(finished, resultLetter) {
+    try {
+      const body = { state: { board, captures }, expectedVersion: mp.version };
+      if (finished) { body.status = 'finished'; body.result = resultLetter; }
+      const data = await mpApi('/api/games/' + mp.gameId + '/state', { method: 'PUT', body: JSON.stringify(body) });
+      mp.version = data.game.version;
+    } catch (err) {
+      if (err.status === 409) {
+        logMsg('Your view was out of date — resyncing.');
+        mpPoll();
+      } else {
+        alert('Could not send your move: ' + err.message);
+      }
+    }
+  }
+
+  document.getElementById('mpSignInBtn').addEventListener('click', mpSignIn);
+  document.getElementById('mpSignUpBtn').addEventListener('click', mpSignUp);
+  document.getElementById('mpSignOutBtn').addEventListener('click', mpSignOut);
+  document.getElementById('mpNewGameBtn').addEventListener('click', mpNewGame);
+  document.getElementById('mpJoinBtn').addEventListener('click', mpJoinGame);
+  document.getElementById('mpLeaveBtn').addEventListener('click', mpLeaveGame);
+
   const rulesOverlay = document.getElementById('rulesOverlay');
   document.getElementById('rulesBtn').addEventListener('click', () => rulesOverlay.classList.add('show'));
   document.getElementById('rulesCloseBtn').addEventListener('click', () => rulesOverlay.classList.remove('show'));
   rulesOverlay.addEventListener('click', (e) => { if (e.target === rulesOverlay) rulesOverlay.classList.remove('show'); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') rulesOverlay.classList.remove('show'); });
 
-  document.getElementById('newGameBtn').addEventListener('click', newGame);
+  document.getElementById('newGameBtn').addEventListener('click', () => mp.gameId ? mpLeaveGame() : newGame());
   document.getElementById('undoBtn').addEventListener('click', undo);
-  document.getElementById('overlayBtn').addEventListener('click', newGame);
+  document.getElementById('overlayBtn').addEventListener('click', () => mp.gameId ? mpLeaveGame() : newGame());
   document.getElementById('difficulty').addEventListener('change', () => {
     aiDepth = parseInt(document.getElementById('difficulty').value, 10);
   });
 
   newGame();
+  mpInit();
 })();
 </script>
 
