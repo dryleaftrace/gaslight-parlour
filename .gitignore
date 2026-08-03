@@ -1,3 +1,7 @@
 .DS_Store
 gaslight-parlour.sessions/
 server/
+Dockerfile
+.dockerignore
+fly.toml
+.fly/
