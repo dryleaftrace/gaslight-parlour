@@ -171,6 +171,14 @@
   .pcard.face-down.stock-back { cursor: pointer; }
   .pcard.face-down.stock-back:hover { transform: translateY(-3px); }
 
+  .pcard[draggable="true"] { cursor: grab; }
+  .pcard.dragging { opacity: 0.35; }
+  .tcol.drag-over, .pile.drag-over {
+    outline: 2px dashed var(--brass-bright);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
   /* --- Side panel --- */
   .panel { width: 300px; display: flex; flex-direction: column; gap: 18px; }
 
@@ -435,6 +443,7 @@
 
   let stock = [], waste = [], foundations = {}, tableau = [];
   let selection = null;
+  let dragSource = null;
   let history = [];
   let moveCount = 0;
   let elapsedSeconds = 0;
@@ -720,6 +729,36 @@
     render();
   }
 
+  function makeDraggable(el, source) {
+    el.draggable = true;
+    el.addEventListener('dragstart', (e) => {
+      dragSource = source;
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', 'card');
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      dragSource = null;
+    });
+  }
+
+  function makeDropTarget(el, dest) {
+    el.addEventListener('dragover', (e) => {
+      if (!dragSource) return;
+      e.preventDefault();
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      if (!dragSource) return;
+      selection = dragSource;
+      tryMoveSelectionTo(dest);
+    });
+  }
+
   function renderCardEl(card, faceUp) {
     const el = document.createElement('div');
     if (!faceUp) { el.className = 'pcard face-down'; return el; }
@@ -773,6 +812,7 @@
         el.classList.toggle('selected', !!(selection && selection.source === 'waste'));
         el.onclick = (e) => { e.stopPropagation(); onWasteClick(); };
         el.ondblclick = (e) => { e.stopPropagation(); onCardDoubleClick({ source: 'waste' }); };
+        makeDraggable(el, { source: 'waste' });
       } else {
         el.style.cursor = 'default';
       }
@@ -787,6 +827,7 @@
         const top = renderCardEl(pile[pile.length - 1], true);
         top.classList.toggle('selected', !!(selection && selection.source === 'foundation' && selection.suit === suit));
         top.onclick = (e) => { e.stopPropagation(); onFoundationClick(suit); };
+        makeDraggable(top, { source: 'foundation', suit });
         el.appendChild(top);
       } else {
         const ph = document.createElement('div');
@@ -795,6 +836,7 @@
         el.appendChild(ph);
       }
       el.onclick = () => onFoundationClick(suit);
+      makeDropTarget(el, { type: 'foundation', suit });
     }
 
     tableauRow.innerHTML = '';
@@ -803,6 +845,7 @@
       colEl.className = 'tcol';
       colEl.style.minHeight = (90 + Math.max(col.length - 1, 0) * 24) + 'px';
       colEl.onclick = (e) => { if (e.target === colEl) onTableauColumnClick(ci); };
+      makeDropTarget(colEl, { type: 'tableau', col: ci });
       col.forEach((card, idx) => {
         const el = renderCardEl(card, card.faceUp);
         el.style.top = (idx * 24) + 'px';
@@ -814,6 +857,8 @@
           if (idx === col.length - 1) {
             el.ondblclick = (e) => { e.stopPropagation(); onCardDoubleClick({ source: 'tableau', col: ci, cardIndex: idx }); };
           }
+          makeDraggable(el, { source: 'tableau', col: ci, cardIndex: idx });
+          makeDropTarget(el, { type: 'tableau', col: ci });
         } else {
           el.style.cursor = 'default';
         }
